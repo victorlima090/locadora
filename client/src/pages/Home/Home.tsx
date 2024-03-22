@@ -1,3 +1,3 @@
 export const Home : React.FC = () => {
-    return <></>
+    return<h1>Home</h1>
 }
