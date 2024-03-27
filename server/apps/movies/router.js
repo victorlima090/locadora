@@ -1,5 +1,6 @@
 import express from "express";
 import { collections } from "../../service/database.service.js";
+import passport from "passport";
 
 import { ObjectId } from "mongodb";
 
@@ -18,21 +19,28 @@ router.get("/:id", async (req, res) => {
   else res.send(results).status(200);
 });
 
-router.post("/", async (req, res) => {
-  try {
-    const newDocument = {
-      title: req.body.title,
-      img: req.body.img,
-      cast: req.body.cast,
-    };
+router.post(
+  "/",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    try {
+      if (req.user.role !== "admin") {
+        return res.send("Unauthorized").status(401);
+      }
+      const newDocument = {
+        title: req.body.title,
+        img: req.body.img,
+        cast: req.body.cast,
+      };
 
-    const result = await collections.movies.insertOne(newDocument);
-    res.send(result).status(204);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("Error adding movie");
+      const result = await collections.movies.insertOne(newDocument);
+      res.send(result).status(204);
+    } catch (error) {
+      console.error(error);
+      res.status(500).send("Error adding movie");
+    }
   }
-});
+);
 router.patch("/users", async (req, res) => {
   try {
     console.log("/movies/users", req.body.userId);
