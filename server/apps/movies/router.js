@@ -21,12 +21,9 @@ router.get("/:id", async (req, res) => {
 
 router.post(
   "/",
-  passport.authenticate("jwt", { session: false }),
+  passport.authenticate("adminOnly", { session: false }),
   async (req, res) => {
     try {
-      if (req.user.role !== "admin") {
-        return res.send("Unauthorized").status(401);
-      }
       const newDocument = {
         title: req.body.title,
         img: req.body.img,
@@ -41,66 +38,77 @@ router.post(
     }
   }
 );
-router.patch("/users", async (req, res) => {
-  try {
-    console.log("/movies/users", req.body.userId);
-    const userId = req.body.userId;
-    const moviesTitle = req.body.moviesTitle;
-    const moviesIds = [];
-    for (const title of moviesTitle) {
-      console.log("movie title", title);
-      const movie = await collections.movies.findOne({
-        title: title,
-        user_id: null,
-      });
-      console.log("movie", movie);
-      if (movie) {
-        moviesIds.push(movie._id);
+router.patch(
+  "/users",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    try {
+      const userId = req.user.userId;
+      const moviesTitle = req.body.moviesTitle;
+      const moviesIds = [];
+      for (const title of moviesTitle) {
+        console.log("movie title", title);
+        const movie = await collections.movies.findOne({
+          title: title,
+          user_id: null,
+        });
+        console.log("movie", movie);
+        if (movie) {
+          moviesIds.push(movie._id);
+        }
       }
+      console.log("/movies/users", moviesIds);
+      const query = { _id: { $in: moviesIds } };
+      const result = await collections.movies.updateMany(query, {
+        $set: { user_id: new ObjectId(userId) },
+      });
+      res.send(result).status(204);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Error update movie's user");
     }
-    console.log("/movies/users", moviesIds);
-    const query = { _id: { $in: moviesIds } };
-    const result = await collections.movies.updateMany(query, {
-      $set: { user_id: new ObjectId(userId) },
-    });
-    res.send(result).status(204);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error update movie's user");
   }
-});
+);
 
-router.patch("/:id", async (req, res) => {
-  try {
-    const query = { _id: new ObjectId(req.params.id) };
-    const updates = {
-      $set: {
-        title: req.body.title,
-        img: req.body.img,
-        cast: req.body.cast,
-        user_id: req.body.user_id,
-      },
-    };
+router.patch(
+  "/:id",
+  passport.authenticate("adminOnly", { session: false }),
+  async (req, res) => {
+    try {
+      const query = { _id: new ObjectId(req.params.id) };
+      const updates = {
+        $set: {
+          title: req.body.title,
+          img: req.body.img,
+          cast: req.body.cast,
+          user_id: req.body.user_id,
+        },
+      };
 
-    const result = await collections.movies.updateOne(query, updates);
-    res.send(result).status(200);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error updating movie");
+      const result = await collections.movies.updateOne(query, updates);
+      res.send(result).status(200);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Error updating movie");
+    }
   }
-});
+);
 
-router.delete("/:id", async (req, res) => {
-  try {
-    const query = { _id: new ObjectId(req.params.id) };
+router.delete(
+  "/:id",
+  passport.authenticate("adminOnly", { session: false }),
+  async (req, res) => {
+    try {
+      const query = { _id: new ObjectId(req.params.id) };
 
-    const result = await collections.movies.deleteOne(query);
+      const result = await collections.movies.deleteOne(query);
 
-    res.send(result).status(200);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error deleting movie");
+      res.send(result).status(200);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Error deleting movie");
+    }
   }
-});
+);
 
 export default router;

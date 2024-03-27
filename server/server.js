@@ -34,6 +34,17 @@ passport.use(
     return done(null, false);
   })
 );
+passport.use(
+  "adminOnly",
+  new Strategy(opts, async (jwt_payload, done) => {
+    const user = await collections.users.findOne({ email: jwt_payload.email });
+    if (user && user.role === "admin") {
+      return done(null, user);
+    }
+
+    return done(null, false);
+  })
+);
 
 app.use("/records", records);
 app.use("/users", users);
